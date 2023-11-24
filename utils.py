@@ -8,6 +8,7 @@
 """
 
 import shelve
+import time
 
 from pybloom_live import BloomFilter
 import ipaddress
@@ -41,6 +42,18 @@ class BloomFilterManager:
             return bloom_filter, count
 
     def save_data(self):
-        with shelve.open(self.db_path, writeback=True) as db:
-            db["bloom_filter"] = self.bloom_filter
-            db["count"] = self.count
+        max_try_time = 3
+        try_time = 0
+
+        while try_time < max_try_time:
+            try:
+                with shelve.open(self.db_path, writeback=True) as db:
+                    db["bloom_filter"] = self.bloom_filter
+                    db["count"] = self.count
+                break  # 如果成功，跳出循环
+            except IOError:
+                time.sleep(0.5)  # 保存失败，等待0.5秒后重试
+                try_time += 1
+
+        if try_time == max_try_time:
+            raise IOError("save data failed")

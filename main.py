@@ -29,7 +29,10 @@ class CountView(MethodView):
         user_ip = standardize_ip(request.headers.get("CF-Connecting-IP"))
 
         if user_ip is None:
-            return jsonify({"error": "Invalid IP address"}), 400
+            return jsonify({"message": "Invalid IP address"}), 400
+
+        if bloom_manager.count >= bloom_manager.capacity:
+            return jsonify({"count": bloom_manager.count, "message": "Thanks for everyone's star!"})
 
         if user_ip not in bloom_filter:
             bloom_filter.add(user_ip)
@@ -41,8 +44,14 @@ class CountView(MethodView):
 
         return jsonify({"count": bloom_manager.count, "message": message})
 
-
 app.add_url_rule("/birthday_api/count", view_func=CountView.as_view("count_view"))
+
+
+@app.errorhandler(Exception)
+def handle_error(e):
+    print(e)
+    return jsonify({"message": "Sorry, something went wrong!"}), 500
+
 
 if __name__ == "__main__":
     app.run(host="localhost", port=5000)
