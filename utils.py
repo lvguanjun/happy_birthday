@@ -21,7 +21,7 @@ def standardize_ip(ip):
 
 
 class BloomFilterManager:
-    def __init__(self, db_path="data.db", capacity=1000, error_rate=0.001):
+    def __init__(self, db_path="data.db", capacity=2000, error_rate=0.001):
         self.db_path = db_path
         self.capacity = capacity
         self.error_rate = error_rate

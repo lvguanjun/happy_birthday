@@ -26,7 +26,7 @@ class CountView(MethodView):
     def post(self):
         global bloom_manager
         bloom_filter = bloom_manager.bloom_filter
-        user_ip = standardize_ip(request.headers.get("X-Real-IP"))
+        user_ip = standardize_ip(request.headers.get("CF-Connecting-IP"))
 
         if user_ip is None:
             return jsonify({"error": "Invalid IP address"}), 400
