@@ -7,11 +7,18 @@
 @Desc    :   utils.py
 """
 
+import ipaddress
+import os
 import shelve
 import time
 
+import requests
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 from pybloom_live import BloomFilter
-import ipaddress
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def standardize_ip(ip):
@@ -57,3 +64,23 @@ class BloomFilterManager:
 
         if try_time == max_try_time:
             raise IOError("save data failed")
+
+
+def get_conversations_times():
+    url = "https://dash.pandoranext.com/"
+    headers = {
+        "cookie": os.getenv("COOKIE"),
+    }
+    response = requests.get(url, headers=headers)
+    html_content = response.text
+
+    soup = BeautifulSoup(html_content, "html.parser")
+    usage_text = soup.find("span", class_="text-red-500 font-bold").text
+    used_amount = usage_text.split("/")[0].strip()
+
+    return used_amount
+
+
+if __name__ == "__main__":
+    res = get_conversations_times()
+    print(res)

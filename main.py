@@ -10,17 +10,20 @@
 from flask import Flask, jsonify, request
 from flask.views import MethodView
 
-from utils import BloomFilterManager, standardize_ip
+from utils import BloomFilterManager, standardize_ip, get_conversations_times
 
 app = Flask(__name__)
 
 
 bloom_manager = BloomFilterManager()
+get_count_times = 0
 
 
 class CountView(MethodView):
     def get(self):
+        global get_count_times
         global bloom_manager
+        get_count_times += 1
         return jsonify({"count": bloom_manager.count})
 
     def post(self):
@@ -32,7 +35,9 @@ class CountView(MethodView):
             return jsonify({"message": "Invalid IP address"}), 400
 
         if bloom_manager.count >= bloom_manager.capacity:
-            return jsonify({"count": bloom_manager.count, "message": "Thanks for everyone's star!"})
+            return jsonify(
+                {"count": bloom_manager.count, "message": "Thanks for everyone's star!"}
+            )
 
         if user_ip not in bloom_filter:
             bloom_filter.add(user_ip)
@@ -44,7 +49,19 @@ class CountView(MethodView):
 
         return jsonify({"count": bloom_manager.count, "message": message})
 
-app.add_url_rule("/birthday_api/count", view_func=CountView.as_view("count_view"))
+
+class ShowView(MethodView):
+    def get(self):
+        global get_count_times
+        star_times = bloom_manager.count
+        conversations_times = get_conversations_times()
+        return jsonify(
+            {
+                "star_times": star_times,
+                "conversations_times": conversations_times,
+                "get_count_times": get_count_times,
+            }
+        )
 
 
 @app.errorhandler(Exception)
@@ -52,6 +69,9 @@ def handle_error(e):
     print(e)
     return jsonify({"message": "Sorry, something went wrong!"}), 500
 
+
+app.add_url_rule("/birthday_api/count", view_func=CountView.as_view("count_view"))
+app.add_url_rule("/birthday_api/show", view_func=ShowView.as_view("show_view"))
 
 if __name__ == "__main__":
     app.run(host="localhost", port=5000)
