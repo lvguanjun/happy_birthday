@@ -3,6 +3,8 @@
 
     // 页面加载时获取初始计数
     fetchCountAndUpdate();
+    fetchCountAndUpdate();
+    fetchAndDisplayApiData();
 
     function addHeartIcon(count) {
         var h2Element = document.querySelector('h2');
@@ -157,5 +159,46 @@ function showToast(message) {
         setTimeout(function () {
             toast.style.display = 'none';
         }, 2000); // 3秒后消失
+    }
+}
+
+function fetchAndDisplayApiData() {
+    fetch('/birthday_api/show')
+        .then(response => response.json())
+        .then(data => {
+            displayApiData(data);
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function displayApiData(data) {
+    var apiDataDiv = document.createElement('div');
+    apiDataDiv.classList.add('api-data');
+    apiDataDiv.style.textAlign = 'left';
+    apiDataDiv.style.marginTop = '0px'; // 增加与最后一个 h3 元素的间距
+    apiDataDiv.style.paddingLeft = '20px'; // 设置整体的左边距
+
+    var maxCount = Math.max(data.conversations_times, data.star_times, data.get_count_times);
+    var maxBarWidth = 70; // 设置最大宽度
+
+    var barHtml = `
+        <p>点赞次数：<span style="display: inline-block; vertical-align: middle; position: relative; height: 20px; background-color: #4CAF50; width: ${(data.star_times / maxCount) * maxBarWidth}%; max-width: ${maxBarWidth}%; line-height: 20px;">
+            <span style="position: absolute; left: 50%; transform: translateX(-50%); color: black;">${data.star_times}</span>
+        </span></p>
+        <p>查看次数：<span style="display: inline-block; vertical-align: middle; position: relative; height: 20px; background-color: #2196F3; width: ${(data.get_count_times / maxCount) * maxBarWidth}%; max-width: ${maxBarWidth}%; line-height: 20px;">
+            <span style="position: absolute; left: 50%; transform: translateX(-50%); color: black;">${data.get_count_times}</span>
+        </span></p>
+        <p>对话次数：<span style="display: inline-block; vertical-align: middle; position: relative; height: 20px; background-color: #FFC107; width: ${(data.conversations_times / maxCount) * maxBarWidth}%; max-width: ${maxBarWidth}%; line-height: 20px;">
+            <span style="position: absolute; left: 50%; transform: translateX(-50%); color: black;">${data.conversations_times}</span>
+        </span></p>
+    `;
+
+    apiDataDiv.innerHTML = barHtml;
+
+    var lastH3 = document.querySelector('h3:last-of-type');
+    if (lastH3) {
+        lastH3.parentNode.insertBefore(apiDataDiv, lastH3.nextSibling);
+    } else {
+        document.body.appendChild(apiDataDiv);
     }
 }
