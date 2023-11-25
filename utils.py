@@ -12,11 +12,17 @@ import os
 import shelve
 import threading
 import time
+from datetime import datetime
 
+import redis
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from pybloom_live import BloomFilter
+
+redis_client = redis.StrictRedis(
+    host="localhost", port=6379, db=0, decode_responses=True
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -82,7 +88,7 @@ class BloomFilterManager:
         self.persist_required = True
 
 
-def get_conversations_times():
+def get_today_conversations_times():
     url = "https://dash.pandoranext.com/"
     headers = {
         "cookie": os.getenv("COOKIE"),
@@ -94,9 +100,16 @@ def get_conversations_times():
     usage_text = soup.find("span", class_="text-red-500 font-bold").text
     used_amount = usage_text.split("/")[0].strip()
 
-    return used_amount
+    return int(used_amount)
+
+
+def sum_all_pre_conversations_times():
+    conversations_times = redis_client.hgetall("conversations_times")
+    total = sum((int(i) for i in conversations_times.values()))
+    return total
 
 
 if __name__ == "__main__":
-    res = get_conversations_times()
-    print(res)
+    data = get_today_conversations_times()
+    today = datetime.now().strftime("%Y-%m-%d")
+    redis_client.hset("conversations_times", today, data)

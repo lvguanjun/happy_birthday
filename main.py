@@ -10,7 +10,12 @@
 from flask import Flask, jsonify, request
 from flask.views import MethodView
 
-from utils import BloomFilterManager, get_conversations_times, standardize_ip
+from utils import (
+    BloomFilterManager,
+    get_today_conversations_times,
+    standardize_ip,
+    sum_all_pre_conversations_times,
+)
 
 app = Flask(__name__)
 
@@ -57,7 +62,9 @@ class ShowView(MethodView):
     def get(self):
         get_count_times = get_bloom_manager.count
         star_times = post_bloom_manager.count
-        conversations_times = get_conversations_times()
+        conversations_times = (
+            get_today_conversations_times() + sum_all_pre_conversations_times()
+        )
         return jsonify(
             {
                 "star_times": star_times,
