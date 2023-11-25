@@ -10,16 +10,13 @@
 import ipaddress
 import os
 import shelve
+import threading
 import time
 
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from pybloom_live import BloomFilter
-import redis
-
-# 连接到本地 Redis 服务器
-r = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -68,6 +65,21 @@ class BloomFilterManager:
 
         if try_time == max_try_time:
             raise IOError("save data failed")
+
+    def start_persist_timer(self, interval=60):  # 默认间隔为1分钟
+        self.persist_required = False
+        self.persist_interval = interval
+        threading.Thread(target=self._persist_timer).start()
+
+    def _persist_timer(self):
+        while True:
+            time.sleep(self.persist_interval)
+            if self.persist_required:
+                self.save_data()
+                self.persist_required = False
+
+    def mark_persist_required(self):
+        self.persist_required = True
 
 
 def get_conversations_times():

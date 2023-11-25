@@ -10,47 +10,52 @@
 from flask import Flask, jsonify, request
 from flask.views import MethodView
 
-from utils import BloomFilterManager, standardize_ip, get_conversations_times, r
+from utils import BloomFilterManager, get_conversations_times, standardize_ip
 
 app = Flask(__name__)
 
 
-bloom_manager = BloomFilterManager()
-get_count_times = 0
+post_bloom_manager = BloomFilterManager()
+post_bloom_manager.start_persist_timer()
+
+get_bloom_manager = BloomFilterManager(db_path="get_data.db", capacity=5000)
+get_bloom_manager.start_persist_timer()
 
 
 class CountView(MethodView):
-    def get(self):
-        r.incr("get_count_times")
-        return jsonify({"count": bloom_manager.count})
-
-    def post(self):
-        bloom_filter = bloom_manager.bloom_filter
+    def handle_request(self, method):
         user_ip = standardize_ip(request.headers.get("CF-Connecting-IP"))
-
         if user_ip is None:
             return jsonify({"message": "Invalid IP address"}), 400
 
-        if bloom_manager.count >= bloom_manager.capacity:
-            return jsonify(
-                {"count": bloom_manager.count, "message": "Thanks for everyone's star!"}
-            )
+        manager = post_bloom_manager if method == "post" else get_bloom_manager
+        bloom_filter = manager.bloom_filter
+
+        if manager.count >= manager.capacity:
+            message = "Thanks for everyone's star!" if method == "post" else None
+            return jsonify({"count": manager.count, "message": message})
 
         if user_ip not in bloom_filter:
             bloom_filter.add(user_ip)
-            bloom_manager.count += 1
-            bloom_manager.save_data()
-            message = "Thanks for your star!"
+            manager.count += 1
+            manager.mark_persist_required()
+            message = "Thanks for your star!" if method == "post" else None
         else:
-            message = "You have already starred!"
+            message = "You have already starred!" if method == "post" else None
 
-        return jsonify({"count": bloom_manager.count, "message": message})
+        return jsonify({"count": manager.count, "message": message})
+
+    def get(self):
+        return self.handle_request("get")
+
+    def post(self):
+        return self.handle_request("post")
 
 
 class ShowView(MethodView):
     def get(self):
-        get_count_times = r.get("get_count_times") or 0
-        star_times = bloom_manager.count
+        get_count_times = get_bloom_manager.count
+        star_times = post_bloom_manager.count
         conversations_times = get_conversations_times()
         return jsonify(
             {
