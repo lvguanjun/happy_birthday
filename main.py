@@ -29,21 +29,22 @@ class CountView(MethodView):
             return jsonify({"message": "Invalid IP address"}), 400
 
         manager = post_bloom_manager if method == "post" else get_bloom_manager
-        bloom_filter = manager.bloom_filter
+        message = self.process_ip(manager, user_ip, method)
 
+        # 显示 POST 请求的计数（点赞数）
+        return jsonify({"count": post_bloom_manager.count, "message": message})
+
+    def process_ip(self, manager, user_ip, method):
         if manager.count >= manager.capacity:
-            message = "Thanks for everyone's star!" if method == "post" else None
-            return jsonify({"count": manager.count, "message": message})
+            return "Thanks for everyone's star!" if method == "post" else None
 
-        if user_ip not in bloom_filter:
-            bloom_filter.add(user_ip)
+        if user_ip not in manager.bloom_filter:
+            manager.bloom_filter.add(user_ip)
             manager.count += 1
             manager.mark_persist_required()
-            message = "Thanks for your star!" if method == "post" else None
+            return "Thanks for your star!" if method == "post" else None
         else:
-            message = "You have already starred!" if method == "post" else None
-
-        return jsonify({"count": manager.count, "message": message})
+            return "You have already starred!" if method == "post" else None
 
     def get(self):
         return self.handle_request("get")
