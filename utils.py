@@ -16,6 +16,10 @@ import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from pybloom_live import BloomFilter
+import redis
+
+# 连接到本地 Redis 服务器
+r = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
 # Load environment variables from .env file
 load_dotenv()
